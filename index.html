@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAP — Multi-Agent Workspace</title>
+  <meta name="description" content="7 specialized AI agents collaborate to plan, build, review, and ship your software projects.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Syntax Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/nap.css">
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <header id="header">
+    <div class="header-brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">NAP</span>
+    </div>
+    <div class="header-project">
+      <span id="project-name">Untitled Project</span>
+    </div>
+    <div class="header-stats">
+      <div class="stat">
+        <span class="stat-value" id="stat-files">0</span>
+        <span class="stat-label">files</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="stat-lines">0</span>
+        <span class="stat-label">lines</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="stat-tokens">0</span>
+        <span class="stat-label">tokens</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="header-api-config">
+        <select id="provider-select" class="header-select" title="Select LLM provider">
+          <option value="simulation">Simulation (Free)</option>
+          <option value="ollama">Ollama (Local Free)</option>
+          <option value="gemini">Gemini (Cloud Free)</option>
+          <option value="ensemble">🔥 Ensemble (Multi-Model)</option>
+        </select>
+        <button id="ensemble-config-toggle" class="header-btn hidden" title="Configure Ensemble Models" style="padding: 4px 8px; margin-left: 2px;">⚙️ Config</button>
+        <input type="text" id="model-input" class="header-input hidden" placeholder="Model (e.g. qwen2.5-coder)..." title="Ollama model name" />
+        <input type="password" id="api-key-input" class="header-input hidden" placeholder="API Key..." title="Enter LLM API Key" />
+        <span id="ollama-status" class="status-indicator hidden" title="Ollama status">🔴 Offline</span>
+        <!-- Ensemble Config Panel -->
+        <div id="ensemble-config" class="hidden">
+          <button id="close-ensemble-config" class="icon-btn" style="position: absolute; top: var(--sp-2); right: var(--sp-2);" title="Close config">✕</button>
+          <div id="ensemble-models" class="ensemble-model-list"></div>
+          <input type="password" id="ensemble-api-key" class="header-input" placeholder="Gemini API Key (optional)..." title="Gemini key to include Gemini in ensemble" />
+        </div>
+      </div>
+      <button id="theme-btn" class="header-btn" title="Cycle theme (Ctrl+T)">
+        <span class="btn-icon">🎨</span>
+      </button>
+      <button id="terminal-btn" class="header-btn" title="Toggle terminal (Ctrl+`)">
+        <span class="btn-icon">⌨</span>
+      </button>
+      <button id="preview-btn" class="header-btn" title="Toggle Live Preview">
+        <span class="btn-icon">🌐</span>
+        <span class="btn-text">Preview</span>
+      </button>
+      <button id="run-btn" class="header-btn" title="Run active file">
+        <span class="btn-icon">▶</span>
+        <span class="btn-text">Run</span>
+      </button>
+      <button id="export-btn" class="header-btn" title="Download as ZIP">
+        <span class="btn-icon">↓</span>
+        <span class="btn-text">Export</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ WORKSPACE ═══ -->
+  <main id="workspace">
+
+    <!-- LEFT: File Explorer -->
+    <aside id="sidebar">
+      <div class="panel-head">
+        <span class="panel-title">Explorer</span>
+        <button id="new-file-btn" class="icon-btn" title="New file">+</button>
+      </div>
+      <div id="file-tree" class="scroll-area"></div>
+    </aside>
+
+    <!-- CENTER: Code Editor -->
+    <section id="editor-panel">
+      <div id="tab-bar"></div>
+      
+      <div id="editor-body">
+        <div id="editor-area">
+          <div id="line-numbers"></div>
+          <pre id="editor-content"><code></code></pre>
+        </div>
+
+        <!-- Live Preview Panel -->
+        <div id="preview-panel" class="hidden">
+          <div class="preview-header">
+            <span class="preview-title">🌐 Live Web Preview</span>
+            <div class="preview-actions">
+              <button id="refresh-preview" class="icon-btn" title="Refresh">🔄</button>
+              <button id="close-preview" class="icon-btn" title="Close Preview">✕</button>
+            </div>
+          </div>
+          <div class="preview-iframe-container" id="preview-iframe-container">
+            <div class="phone-simulator-frame">
+              <div class="phone-dynamic-island"></div>
+              <iframe id="preview-iframe" sandbox="allow-scripts allow-modals"></iframe>
+              <div class="phone-home-indicator"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Welcome Screen -->
+      <div id="welcome-screen">
+        <div class="welcome-icon">◆</div>
+        <h2>NAP</h2>
+        <p>Describe your project below to begin.</p>
+        <p class="welcome-hint">Or pick a template to start with a scaffold.</p>
+        <div class="welcome-shortcuts">
+          <span class="shortcut-pill"><kbd>Ctrl</kbd><kbd>K</kbd> Commands</span>
+          <span class="shortcut-pill"><kbd>Ctrl</kbd><kbd>`</kbd> Terminal</span>
+          <span class="shortcut-pill"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>F</kbd> Search</span>
+        </div>
+      </div>
+
+      <!-- Integrated Terminal -->
+      <div id="terminal" class="hidden">
+        <div class="terminal-head">
+          <span>Terminal</span>
+          <button id="close-terminal" class="icon-btn">✕</button>
+        </div>
+        <div id="terminal-output" class="scroll-area"></div>
+        <div class="terminal-input-row">
+          <span class="terminal-prompt-text">$</span>
+          <input type="text" id="terminal-input" placeholder="Type a command…" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div id="editor-status">
+        <span id="status-branch">⎇ main</span>
+        <span class="status-spacer"></span>
+        <span id="status-lines"></span>
+        <span id="status-encoding">UTF-8</span>
+        <span id="status-lang"></span>
+      </div>
+    </section>
+
+    <!-- RIGHT: Agent Pipeline -->
+    <aside id="agent-panel">
+      <div class="panel-head">
+        <span class="panel-title">Pipeline</span>
+      </div>
+      <div id="agent-pipeline" class="scroll-area"></div>
+      <div class="panel-divider"></div>
+      <div class="panel-head">
+        <span class="panel-title">Output</span>
+        <button id="clear-output-btn" class="icon-btn" title="Clear output">⌫</button>
+      </div>
+      <div id="agent-output" class="scroll-area"></div>
+    </aside>
+  </main>
+
+  <!-- ═══ INPUT BAR ═══ -->
+  <footer id="input-bar">
+    <div class="input-wrapper">
+      <textarea id="prompt-input" placeholder="Describe your project…" rows="1"></textarea>
+    </div>
+    <div class="input-controls">
+      <select id="template-select" title="Project template">
+        <option value="">Template…</option>
+        <option value="react">React App</option>
+        <option value="reactnative">React Native Mobile App</option>
+        <option value="express">Express API</option>
+        <option value="flask">Python Flask</option>
+        <option value="nextjs">Next.js Full-Stack</option>
+        <option value="cli">CLI Tool</option>
+        <option value="static">Static Site</option>
+        <option value="interpreter">AST Interpreter VM</option>
+      </select>
+      <button id="fix-btn" class="control-btn" title="Toggle auto-fix">🔧 <span>Fix</span></button>
+      <button id="build-btn" class="control-btn primary" title="Run agent pipeline (Ctrl+Enter)">▶ <span>Build</span></button>
+    </div>
+  </footer>
+
+  <!-- ═══ OVERLAYS ═══ -->
+
+  <!-- Command Palette (Ctrl+K) -->
+  <div id="cmd-palette" class="overlay hidden">
+    <div class="palette-box">
+      <input type="text" id="cmd-search" placeholder="Type a command…" autocomplete="off" spellcheck="false" />
+      <div id="cmd-results" class="scroll-area"></div>
+    </div>
+  </div>
+
+  <!-- Global Search (Ctrl+Shift+F) -->
+  <div id="search-panel" class="search-overlay hidden">
+    <div class="search-box">
+      <div class="search-head">
+        <span>Search in Files</span>
+        <button id="close-search" class="icon-btn">✕</button>
+      </div>
+      <input type="text" id="search-input" placeholder="Search across all files…" autocomplete="off" />
+      <div id="search-results" class="scroll-area"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts (Ctrl+/) -->
+  <div id="shortcuts-modal" class="overlay hidden">
+    <div class="shortcuts-box">
+      <h3>Keyboard Shortcuts</h3>
+      <div class="shortcut-grid">
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>K</kbd></div><span>Command palette</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></div><span>Build project</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>`</kbd></div><span>Toggle terminal</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></div><span>Search files</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>B</kbd></div><span>Toggle sidebar</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>W</kbd></div><span>Close tab</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd>+<kbd>/</kbd></div><span>This panel</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span>Close overlay</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Execution Output (legacy, for Run button) -->
+  <div id="execution-output" class="hidden">
+    <div class="exec-header">
+      <span>Console Output</span>
+      <button id="close-exec" class="icon-btn">✕</button>
+    </div>
+    <pre id="exec-content"></pre>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="js/nap-core.js"></script>
+  <script src="js/filesystem.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/agents.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/features.js"></script>
+</body>
+</html>
+
