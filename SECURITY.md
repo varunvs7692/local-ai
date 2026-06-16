@@ -11,7 +11,7 @@ Currently, security updates are applied to the latest release of the NAP Multi-A
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in this project, please report it responsibly by contacting the maintainer via email at [varunvs7692@gmail.com](mailto:varunvs7692@gmail.com).
+If you discover a security vulnerability in this project, please report it responsibly by opening a draft Security Advisory under the repository's "Security" tab on GitHub, or by contacting the repository maintainers.
 
 Please include the following details in your report:
 - **Description**: A detailed description of the vulnerability.
